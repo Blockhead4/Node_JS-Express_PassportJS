@@ -1,5 +1,4 @@
 const express = require("express");
-const fs = require("fs");
 const bodyParser = require("body-parser");
 const compression = require("compression");
 const helmet = require("helmet");
@@ -8,15 +7,13 @@ const app = express();
 app.use(helmet());
 
 const session = require("express-session");
-// const FileStore = require("session-file-store")(session);
+const FileStore = require("session-file-store")(session);
 const flash = require("connect-flash");
+const db = require("./lib/db");
 
 const myMiddleWare = (request, response, next) => {
-  fs.readdir("./data", (err, filelist) => {
-    if (err) throw err;
-    request.list = filelist;
-    next();
-  });
+  request.list = db.get("topics").value();
+  next();
 };
 
 app.use(express.static("public"));
@@ -28,8 +25,8 @@ app.use(
     // secure: false, // true로 설정하면 SereializeUser로 세션에 passport.user 객체가 생성되지 않음
     secret: "asdfasef21212@#@!#",
     resave: false,
-    saveUninitialized: true
-    // store: new FileStore()
+    saveUninitialized: true,
+    store: new FileStore()
   })
 );
 app.use(flash());
