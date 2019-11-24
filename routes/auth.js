@@ -3,51 +3,53 @@ const router = express.Router();
 
 const template = require("../lib/template.js");
 
-router.get("/login", (request, response) => {
-  var title = "WEB - login";
-  var list = template.list(request.list);
-  var html = template.HTML(
-    title,
-    list,
-    `
-        <form action="/auth/login_process" method="post">
-          <p>
-            <input type="text" name="email" placeholder="email">
-          </p>
-          <p>
-            <input type="password" name="pwd" placeholder="password">
-          </p>
-          <p>
-            <input type="submit" value="login">
-          </p>
-        </form>
-        `,
-    ""
-  );
-  response.send(html);
-});
-
-/*
-router.post("/login_process", (request, response) => {
-  var post = request.body;
-  var email = post.email;
-  var password = post.pwd;
-  if (email === authData.email && password === authData.password) {
-    request.session.is_logined = true;
-    request.session.nickname = authData.nickname;
-    request.session.save(function() {
-      response.redirect(`/`);
-    });
-  } else {
-    response.send("Who?");
-  }
-});
-*/
-
-router.get("/logout", (request, response) => {
-  request.session.destroy(function(err) {
-    response.redirect("/");
+module.exports = function(passport) {
+  router.get("/login", (request, response) => {
+    var fmsg = request.flash();
+    var feedback = "";
+    if (fmsg.error) {
+      feedback = fmsg.error[0];
+    }
+    var title = "WEB - login";
+    var list = template.list(request.list);
+    var html = template.HTML(
+      title,
+      list,
+      `
+      <div style="color:red;">${feedback}</div>
+      <form action="/auth/login_process" method="post">
+        <p>
+          <input type="text" name="email" placeholder="email">
+        </p>
+        <p>
+          <input type="password" name="pwd" placeholder="password">
+        </p>
+        <p>
+          <input type="submit" value="login">
+        </p>
+      </form>
+      `,
+      ""
+    );
+    response.send(html);
   });
-});
 
-module.exports = router;
+  router.post(
+    "/login_process",
+    passport.authenticate("local", {
+      successRedirect: "/",
+      failureRedirect: "/auth/login",
+      failureFlash: true,
+      successFlash: "Welcome!"
+    })
+  );
+
+  router.get("/logout", (request, response) => {
+    request.logout();
+    request.session.save(function() {
+      response.redirect("/");
+    });
+  });
+
+  return router;
+};
